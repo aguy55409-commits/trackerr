@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Builds / releases
+build/
+dist/
+dist2/
+dist3/
+dist4/
+*.spec.bak
+
+# Large model binaries (keep folder + args; re-export engines locally)
+models/**/*.engine
+models/**/*.onnx
+models/**/*.pt
+models/**/weights/
+*.pt
+
+# Datasets & third-party clones
+datasets/
+daycien/
+jamess/
+tommy-de-sousa/
+xl-xl/
+native/
+
+# Local runtime
+config.json
+tracker_config.json
+training_status.json
+*.log
+tracker_mouse_debug.txt
+tracker_debug.txt
+
+# IDE / OS
+.idea/
+.vscode/
+.cursor/
+*.user
+Thumbs.db
+Desktop.ini

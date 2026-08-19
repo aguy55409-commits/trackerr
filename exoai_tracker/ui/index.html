@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carbon</title>
+  <style>
+    :root {
+      --bg: #08090c;
+      --card: #111318;
+      --line: #232833;
+      --text: #eef2f7;
+      --muted: #8b93a3;
+      --accent: #3dffc8;
+      --accent-dim: #16352c;
+      --danger: #ff5d6c;
+      --track: #2ee6a8;
+      --scan: #f0c060;
+      --fov: #60a8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font: 13px/1.4 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+    .app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 16px 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .brand { display: flex; align-items: baseline; gap: 8px; }
+    .brand h1 { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
+    .brand span { color: var(--accent); font-size: 11px; font-weight: 650; }
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #1a1d24;
+      color: var(--muted);
+    }
+    .badge.TRACK { background: var(--accent-dim); color: var(--accent); }
+    .badge.SCAN { background: #2a2418; color: var(--scan); }
+    .badge.FOV { background: #152033; color: var(--fov); }
+
+    .telemetry {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: var(--card);
+      padding: 12px 12px 10px;
+    }
+    .stat label {
+      display: block;
+      font-size: 10px;
+      color: #6a7382;
+      letter-spacing: 0.08em;
+      font-weight: 650;
+    }
+    .stat .val {
+      font-size: 22px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+    .stat .val small {
+      font-size: 11px;
+      color: #6a7382;
+      margin-left: 4px;
+      font-weight: 500;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tabs button {
+      flex: 1;
+      border: 0;
+      background: var(--card);
+      color: var(--muted);
+      padding: 9px;
+      border-radius: 10px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .tabs button.active { background: #1b1f28; color: #fff; }
+
+    .panel { display: none; flex: 1; overflow: auto; padding-right: 2px; }
+    .panel.active { display: block; }
+    .panel::-webkit-scrollbar { width: 8px; }
+    .panel::-webkit-scrollbar-thumb { background: #2a303c; border-radius: 8px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .card h2 {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .seg { display: flex; gap: 6px; }
+    .seg button, .bone button, .row button, select {
+      border: 0;
+      background: #1b1f28;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .seg button { flex: 1; }
+    .seg button.active, .bone button.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .row span { color: var(--muted); }
+    .row b { color: var(--accent); font-weight: 650; }
+    select { min-width: 140px; }
+
+    .slider label, .slider .top {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .slider { margin-bottom: 12px; }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 4px;
+    }
+    .bone { display: flex; gap: 6px; margin-bottom: 8px; }
+    .bone button { flex: 1; }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+      color: var(--text);
+    }
+    .check input { accent-color: var(--accent); }
+
+    footer { padding-top: 8px; }
+    #toggle {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      background: var(--accent);
+      color: #04140e;
+      cursor: pointer;
+    }
+    #toggle.stop { background: var(--danger); color: #1a0508; }
+    #toggle:disabled { opacity: 0.55; cursor: wait; }
+    #status {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand"><h1>Carbon</h1></div>
+      <div id="badge" class="badge">IDLE</div>
+    </header>
+
+    <section class="telemetry">
+      <div class="stat"><label>DETECT</label><div class="val" id="hz">—<small>hz</small></div></div>
+      <div class="stat"><label>INFER</label><div class="val" id="ms">—<small>ms</small></div></div>
+      <div class="stat"><label>LOCK</label><div class="val" id="conf">—<small>conf</small></div></div>
+    </section>
+
+    <div class="tabs">
+      <button class="active" data-tab="track">Track</button>
+      <button data-tab="vision">Vision</button>
+    </div>
+
+    <section id="track" class="panel active">
+      <div class="card">
+        <h2>GAME</h2>
+        <div class="seg" id="models">
+          <button data-model="FN">FN</button>
+          <button data-model="AL">Apex</button>
+          <button data-model="VAL">VAL</button>
+          <button data-model="R6">R6</button>
+          <button data-model="COLOR">Color</button>
+        </div>
+      </div>
+      <div class="card" id="colorCard" style="display:none">
+        <h2>COLOR TARGET</h2>
+        <div class="row">
+          <span>Target color</span>
+          <select id="colorPreset">
+            <option value="purple">Purple (Fortnite)</option>
+            <option value="yellow">Yellow</option>
+            <option value="red">Red</option>
+            <option value="orange">Orange</option>
+            <option value="cyan">Cyan</option>
+            <option value="white">White/Bright</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <h2>ACTIVATION</h2>
+        <div class="row"><span>Hold to track</span><b id="bindLabel">RMB</b></div>
+        <div class="row">
+          <select id="bind"></select>
+          <button id="capture">Capture</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>OUTPUT</h2>
+        <div class="row">
+          <span>Mouse driver</span>
+          <select id="mouse">
+            <option value="razer">Razer Synapse</option>
+            <option value="win32">Win32</option>
+          </select>
+        </div>
+        <div class="row">
+          <span>Screen capture</span>
+          <select id="capture">
+            <option value="dxcam">DXGI (dxcam)</option>
+            <option value="mss">GDI (mss)</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <h2>AIM</h2>
+        <div class="slider"><div class="top"><span>Speed</span><b id="speedVal">3.80</b></div>
+          <input id="speed" type="range" min="0.5" max="5" step="0.01" /></div>
+        <div class="slider"><div class="top"><span>Lead</span><b id="leadVal">1.00</b></div>
+          <input id="lead" type="range" min="0" max="1.5" step="0.01" /></div>
+        <div class="slider"><div class="top"><span>Smooth</span><b id="smoothVal">0.28</b></div>
+          <input id="smooth" type="range" min="0.05" max="0.9" step="0.01" /></div>
+        <div class="row"><span>Bone</span></div>
+        <div class="bone">
+          <button data-h="0.92">Head</button>
+          <button data-h="0.62">Chest</button>
+          <button data-h="0.42">Belly</button>
+        </div>
+        <div class="slider"><div class="top"><span>Height</span><b id="heightVal">Chest</b></div>
+          <input id="height" type="range" min="0" max="1" step="0.01" /></div>
+      </div>
+    </section>
+
+    <section id="vision" class="panel">
+      <div class="card">
+        <h2>CAPTURE</h2>
+        <div class="slider"><div class="top"><span>FOV idle</span><b id="fovVal">180</b></div>
+          <input id="fov" type="range" min="40" max="600" step="1" /></div>
+        <label class="check"><input id="dynFov" type="checkbox" /> Expand FOV while bind is held</label>
+        <div class="slider"><div class="top"><span>FOV held</span><b id="fovHeldVal">280</b></div>
+          <input id="fovHeld" type="range" min="40" max="600" step="1" /></div>
+        <div class="slider"><div class="top"><span>Confidence</span><b id="confVal">0.35</b></div>
+          <input id="confidence" type="range" min="0.1" max="0.9" step="0.01" /></div>
+      </div>
+      <div class="card">
+        <h2>DISPLAY</h2>
+        <label class="check"><input id="debug" type="checkbox" /> Debug preview window</label>
+        <label class="check"><input id="overlay" type="checkbox" /> FOV overlay on screen</label>
+      </div>
+    </section>
+
+    <footer>
+      <button id="toggle">Start Tracker</button>
+      <div id="status">Ready — press Start Tracker</div>
+    </footer>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const BIND_NAMES = {right:'RMB', left:'LMB', middle:'MMB', x1:'Mouse4', x2:'Mouse5'};
+    let applyTimer = null;
+    let busy = false;
+
+    function heightName(v) {
+      if (v >= 0.82) return 'Head';
+      if (v >= 0.55) return 'Chest';
+      if (v >= 0.32) return 'Belly';
+      return 'Feet';
+    }
+
+    function setNum(id, v, digits) {
+      $(id).textContent = Number(v).toFixed(digits);
+    }
+
+    function collect() {
+      return {
+        active_model: document.querySelector('#models button.active')?.dataset.model || 'FN',
+        bind_key: $('bind').value,
+        mouse_method: $('mouse').value,
+        capture_method: $('capture').value,
+        color_preset: $('colorPreset').value,
+        track_speed: Number($('speed').value),
+        aim_lead: Number($('lead').value),
+        aim_smooth: Number($('smooth').value),
+        aim_offset_y: Number($('height').value),
+        fov_radius: Number($('fov').value),
+        fov_radius_held: Number($('fovHeld').value),
+        dynamic_fov_enabled: $('dynFov').checked,
+        confidence: Number($('confidence').value),
+        show_debug: $('debug').checked,
+        show_overlay: $('overlay').checked,
+      };
+    }
+    
+    function updateColorCard() {
+      const isColor = document.querySelector('#models button.active')?.dataset.model === 'COLOR';
+      $('colorCard').style.display = isColor ? 'block' : 'none';
+    }
+
+    function scheduleApply() {
+      clearTimeout(applyTimer);
+      applyTimer = setTimeout(() => pywebview.api.apply_config(collect()), 80);
+    }
+
+    function hydrate(cfg, binds) {
+      document.querySelectorAll('#models button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.model === cfg.active_model);
+      });
+      $('bind').innerHTML = binds.map((k) => `<option value="${k}">${BIND_NAMES[k] || k.toUpperCase()}</option>`).join('');
+      $('bind').value = cfg.bind_key;
+      $('bindLabel').textContent = BIND_NAMES[cfg.bind_key] || cfg.bind_key.toUpperCase();
+      $('mouse').value = cfg.mouse_method;
+      $('capture').value = cfg.capture_method || 'dxcam';
+      $('colorPreset').value = cfg.color_preset || 'purple';
+      updateColorCard();
+      $('speed').value = cfg.track_speed; setNum('speedVal', cfg.track_speed, 2);
+      $('lead').value = cfg.aim_lead; setNum('leadVal', cfg.aim_lead, 2);
+      $('smooth').value = cfg.aim_smooth; setNum('smoothVal', cfg.aim_smooth, 2);
+      $('height').value = cfg.aim_offset_y; $('heightVal').textContent = heightName(cfg.aim_offset_y);
+      document.querySelectorAll('.bone button').forEach((b) => {
+        b.classList.toggle('active', Math.abs(Number(b.dataset.h) - cfg.aim_offset_y) < 0.03);
+      });
+      $('fov').value = cfg.fov_radius; $('fovVal').textContent = Math.round(cfg.fov_radius);
+      $('fovHeld').value = cfg.fov_radius_held; $('fovHeldVal').textContent = Math.round(cfg.fov_radius_held);
+      $('dynFov').checked = !!cfg.dynamic_fov_enabled;
+      $('confidence').value = cfg.confidence; setNum('confVal', cfg.confidence, 2);
+      $('debug').checked = !!cfg.show_debug;
+      $('overlay').checked = !!cfg.show_overlay;
+    }
+
+    function paintStats(s) {
+      $('badge').textContent = s.state || 'IDLE';
+      $('badge').className = 'badge ' + (s.state || 'IDLE');
+      $('hz').innerHTML = (s.detect_hz > 0 ? Math.round(s.detect_hz) : '—') + '<small>hz</small>';
+      $('ms').innerHTML = (s.infer_ms > 0 ? Math.round(s.infer_ms) : '—') + '<small>ms</small>';
+      $('conf').innerHTML = (s.target_conf != null ? Math.round(s.target_conf * 100) + '%' : '—') + '<small>conf</small>';
+      if (s.detail) $('status').textContent = s.detail;
+      if (s.running) {
+        $('toggle').textContent = 'Stop Tracker';
+        $('toggle').classList.add('stop');
+      } else if (!busy) {
+        $('toggle').textContent = 'Start Tracker';
+        $('toggle').classList.remove('stop');
+      }
+    }
+
+    document.querySelectorAll('.tabs button').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tabs button').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        $(btn.dataset.tab).classList.add('active');
+      };
+    });
+
+    document.querySelectorAll('#models button').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('#models button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateColorCard();
+        scheduleApply();
+      };
+    });
+    $('colorPreset').onchange = scheduleApply;
+    document.querySelectorAll('.bone button').forEach((btn) => {
+      btn.onclick = () => {
+        $('height').value = btn.dataset.h;
+        $('heightVal').textContent = heightName(Number(btn.dataset.h));
+        document.querySelectorAll('.bone button').forEach((b) => b.classList.toggle('active', b === btn));
+        scheduleApply();
+      };
+    });
+
+    [['speed','speedVal',2],['lead','leadVal',2],['smooth','smoothVal',2],['confidence','confVal',2]].forEach(([id, lab, d]) => {
+      $(id).oninput = () => { setNum(lab, $(id).value, d); scheduleApply(); };
+    });
+    $('height').oninput = () => { $('heightVal').textContent = heightName(Number($('height').value)); scheduleApply(); };
+    $('fov').oninput = () => { $('fovVal').textContent = Math.round($('fov').value); scheduleApply(); };
+    $('fovHeld').oninput = () => { $('fovHeldVal').textContent = Math.round($('fovHeld').value); scheduleApply(); };
+    $('bind').onchange = () => { $('bindLabel').textContent = BIND_NAMES[$('bind').value] || $('bind').value.toUpperCase(); scheduleApply(); };
+    $('mouse').onchange = scheduleApply;
+    $('dynFov').onchange = scheduleApply;
+    $('debug').onchange = scheduleApply;
+    $('overlay').onchange = scheduleApply;
+
+    $('capture').onclick = async () => {
+      $('status').textContent = 'Press any key or mouse button';
+      const key = await pywebview.api.capture_bind();
+      $('bind').value = key;
+      $('bindLabel').textContent = BIND_NAMES[key] || key.toUpperCase();
+    };
+
+    $('toggle').onclick = async () => {
+      if (busy) return;
+      busy = true;
+      $('toggle').disabled = true;
+      $('toggle').textContent = $('toggle').classList.contains('stop') ? 'Stopping...' : 'Loading...';
+      try {
+        const res = await pywebview.api.toggle();
+        $('status').textContent = res.detail || res.status;
+        paintStats(res);
+      } catch (err) {
+        $('status').textContent = String(err);
+      }
+      busy = false;
+      $('toggle').disabled = false;
+    };
+
+    window.addEventListener('pywebviewready', async () => {
+      const boot = await pywebview.api.bootstrap();
+      hydrate(boot.config, boot.binds);
+      paintStats(boot);
+      setInterval(async () => {
+        const s = await pywebview.api.poll();
+        paintStats(s);
+      }, 160);
+    });
+  </script>
+</body>
+</html>

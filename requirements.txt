@@ -1,0 +1,9 @@
+ultralytics>=8.3.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+mss>=9.0.0
+dxcam>=0.3.0
+tensorrt-cu12>=11.2.0
+keyboard>=0.13.5
+pywin32>=306
+Pillow>=10.0.0
