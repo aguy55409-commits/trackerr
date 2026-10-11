@@ -1,0 +1,15 @@
+{
+  "active_model": "AL",
+  "speed": 0.1,
+  "fov": 300,
+  "aim_height": 0.5,
+  "max_move": 14,
+  "overshoot_ratio": 0.96,
+  "deadzone_px": 2,
+  "detect_interval_ms": 16,
+  "move_interval_ms": 8,
+  "idle_sleep_ms": 20,
+  "mouse_backend": "razer",
+  "bind_key": "right",
+  "tracker": "models/al/tracktrack.yaml"
+}

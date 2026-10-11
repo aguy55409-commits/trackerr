@@ -6,302 +6,687 @@
   <title>Carbon</title>
   <style>
     :root {
-      --bg: #08090c;
-      --card: #111318;
-      --line: #232833;
-      --text: #eef2f7;
-      --muted: #8b93a3;
-      --accent: #3dffc8;
-      --accent-dim: #16352c;
-      --danger: #ff5d6c;
-      --track: #2ee6a8;
-      --scan: #f0c060;
-      --fov: #60a8f0;
+      --bg: #15171a;
+      --panel: #1b1e22;
+      --header: #23272d;
+      --frame: #282c32;
+      --frame-hi: #33383f;
+      --line: #2f343b;
+      --text: #d7dade;
+      --muted: #868d96;
+      --accent: #4676c8;
+      --accent-hi: #5a8ade;
+      --danger: #b4494f;
+      --good: #5aa172;
+      --warn: #b99a4a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
       background: var(--bg);
       color: var(--text);
-      font: 13px/1.4 "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      font: 12px/1.35 "Segoe UI", system-ui, sans-serif;
       user-select: none;
       overflow: hidden;
     }
-    .app {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      padding: 16px 16px 14px;
-    }
-    header {
+    .app { height: 100%; display: flex; flex-direction: column; }
+
+    /* Title bar */
+    .titlebar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
+      gap: 8px;
+      background: var(--header);
+      border-bottom: 1px solid var(--line);
+      padding: 6px 9px;
+      flex: none;
     }
-    .brand { display: flex; align-items: baseline; gap: 8px; }
-    .brand h1 { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
-    .brand span { color: var(--accent); font-size: 11px; font-weight: 650; }
+    .titlebar .name { font-weight: 600; letter-spacing: .02em; }
+    .titlebar .sep { flex: 1; }
     .badge {
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.08em;
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: #1a1d24;
+      letter-spacing: .07em;
+      padding: 2px 7px;
+      background: var(--frame);
+      border: 1px solid var(--line);
       color: var(--muted);
     }
-    .badge.TRACK { background: var(--accent-dim); color: var(--accent); }
-    .badge.SCAN { background: #2a2418; color: var(--scan); }
-    .badge.FOV { background: #152033; color: var(--fov); }
+    .badge.TRACK { color: #7fd6a2; border-color: #2f5540; background: #1d2b23; }
+    .badge.SCAN  { color: #d8bd77; border-color: #56492a; background: #2a2519; }
+    .badge.FOV   { color: #82aee8; border-color: #2c4463; background: #1a232e; }
 
+    /* Telemetry strip */
     .telemetry {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 1px;
-      background: var(--line);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 12px;
+      display: flex;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      flex: none;
     }
     .stat {
-      background: var(--card);
-      padding: 12px 12px 10px;
+      flex: 1;
+      padding: 5px 9px;
+      border-right: 1px solid var(--line);
     }
+    .stat:last-child { border-right: 0; }
     .stat label {
       display: block;
-      font-size: 10px;
-      color: #6a7382;
-      letter-spacing: 0.08em;
-      font-weight: 650;
-    }
-    .stat .val {
-      font-size: 22px;
-      font-weight: 650;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -0.03em;
-    }
-    .stat .val small {
-      font-size: 11px;
-      color: #6a7382;
-      margin-left: 4px;
-      font-weight: 500;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 12px;
-    }
-    .tabs button {
-      flex: 1;
-      border: 0;
-      background: var(--card);
-      color: var(--muted);
-      padding: 9px;
-      border-radius: 10px;
-      font-weight: 650;
-      cursor: pointer;
-    }
-    .tabs button.active { background: #1b1f28; color: #fff; }
-
-    .panel { display: none; flex: 1; overflow: auto; padding-right: 2px; }
-    .panel.active { display: block; }
-    .panel::-webkit-scrollbar { width: 8px; }
-    .panel::-webkit-scrollbar-thumb { background: #2a303c; border-radius: 8px; }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
-    .card h2 {
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-
-    .seg { display: flex; gap: 6px; }
-    .seg button, .bone button, .row button, select {
-      border: 0;
-      background: #1b1f28;
-      color: var(--text);
-      border-radius: 8px;
-      padding: 8px 10px;
-      cursor: pointer;
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: #6e757e;
       font-weight: 600;
     }
-    .seg button { flex: 1; }
-    .seg button.active, .bone button.active {
-      background: var(--accent-dim);
-      color: var(--accent);
+    .stat .val {
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
+    .stat .val small { font-size: 9px; color: #6e757e; margin-left: 2px; font-weight: 500; }
 
+    /* Tabs */
+    .tabs { display: flex; background: var(--header); flex: none; }
+    .tabs button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 16px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tabs button:hover { background: var(--frame); color: var(--text); }
+    .tabs button.active {
+      background: var(--panel);
+      color: #fff;
+      border-bottom-color: var(--accent);
+    }
+    .tabs .grow { flex: 1; border-right: 0; background: var(--header); }
+
+    /* Panels + collapsing sections */
+    .panel {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--panel);
+      padding: 7px;
+    }
+    .panel.active { display: block; }
+    .panel::-webkit-scrollbar { width: 9px; }
+    .panel::-webkit-scrollbar-track { background: var(--panel); }
+    .panel::-webkit-scrollbar-thumb { background: #363b43; border: 2px solid var(--panel); }
+    .panel::-webkit-scrollbar-thumb:hover { background: #454b55; }
+
+    details {
+      border: 1px solid var(--line);
+      background: #1d2126;
+      margin-bottom: 6px;
+    }
+    summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 5px 8px;
+      background: var(--header);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      color: #a6adb6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before {
+      content: "\25B6";
+      font-size: 8px;
+      color: var(--muted);
+      transition: transform .12s;
+    }
+    details[open] > summary::before { transform: rotate(90deg); }
+    summary:hover { background: var(--frame); color: #fff; }
+    .body { padding: 8px; }
+
+    /* Rows: label on the left, control on the right */
     .row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      min-height: 20px;
     }
-    .row span { color: var(--muted); }
-    .row b { color: var(--accent); font-weight: 650; }
-    select { min-width: 140px; }
+    .row:last-child { margin-bottom: 0; }
+    .row > .lab { color: var(--muted); flex: none; width: 82px; }
+    .row > .ctl { flex: 1; display: flex; gap: 4px; min-width: 0; }
+    .row .val { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-    .slider label, .slider .top {
+    /* Buttons */
+    button.ig, select.ig {
+      border: 1px solid var(--line);
+      background: var(--frame);
+      color: var(--text);
+      padding: 3px 9px;
+      font: inherit;
+      cursor: pointer;
+      min-height: 21px;
+    }
+    button.ig:hover, select.ig:hover { background: var(--frame-hi); }
+    button.ig:active { background: var(--accent); border-color: var(--accent-hi); }
+    button.ig.active {
+      background: var(--accent);
+      border-color: var(--accent-hi);
+      color: #fff;
+      font-weight: 600;
+    }
+    .seg { display: flex; flex: 1; }
+    .seg button { flex: 1; }
+    select.ig {
+      flex: 1;
+      min-width: 0;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position: calc(100% - 13px) 9px, calc(100% - 9px) 9px;
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+      padding-right: 22px;
+    }
+    select.ig option { background: var(--frame); }
+
+    /* ImGui-style slider: filled frame with the value drawn inside */
+    .sl {
+      position: relative;
+      flex: 1;
+      height: 19px;
+      background: var(--frame);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      min-width: 0;
+    }
+    .sl .fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 0;
+      background: var(--accent);
+    }
+    .sl:hover .fill { background: var(--accent-hi); }
+    .sl .txt {
+      position: absolute;
+      inset: 0;
       display: flex;
-      justify-content: space-between;
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 4px;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .65);
+      pointer-events: none;
     }
-    .slider { margin-bottom: 12px; }
-    input[type=range] {
+    .sl input[type=range] {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      accent-color: var(--accent);
-      height: 4px;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: ew-resize;
     }
-    .bone { display: flex; gap: 6px; margin-bottom: 8px; }
-    .bone button { flex: 1; }
 
+    /* Aim-height skeleton */
+    .skelwrap { display: flex; gap: 10px; align-items: stretch; }
+    .skel {
+      position: relative;
+      flex: none;
+      width: 120px;
+      height: 230px;
+      background: #171a1e;
+      border: 1px solid var(--line);
+      cursor: ns-resize;
+      touch-action: none;
+    }
+    .skel svg { display: block; width: 100%; height: 100%; }
+    .bone { fill: none; stroke: #7e858f; stroke-width: 2; stroke-linecap: round; }
+    .bone.thin { stroke-width: 1.4; }
+    .skull { fill: #23272d; stroke: #8b939d; stroke-width: 2; }
+    .socket { fill: #12151a; stroke: none; }
+    .zone { fill: #fff; opacity: 0; }
+    .aimline { stroke: var(--accent-hi); stroke-width: 1.5; }
+    .aimdot { fill: var(--accent-hi); stroke: #0e1014; stroke-width: 1; }
+    .aimgrab { fill: var(--accent-hi); }
+    .skel:hover .aimline, .skel:hover .aimdot, .skel:hover .aimgrab {
+      stroke: #7ea8ef;
+      fill: #7ea8ef;
+    }
+    .skel:hover .aimdot { stroke: #0e1014; }
+    .skelside { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .readout {
+      background: var(--frame);
+      border: 1px solid var(--line);
+      padding: 6px 8px;
+    }
+    .readout .part { font-size: 14px; font-weight: 600; color: #fff; }
+    .readout .pct {
+      font-size: 10px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .skelside .hint { font-size: 10px; color: #6e757e; line-height: 1.45; margin-top: auto; }
+    .bonecol { display: flex; flex-direction: column; gap: 4px; }
+
+    /* Checkbox */
     .check {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin: 8px 0;
-      color: var(--text);
+      gap: 7px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      min-height: 20px;
     }
-    .check input { accent-color: var(--accent); }
+    .check:last-child { margin-bottom: 0; }
+    .check input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .check .box {
+      flex: none;
+      width: 14px;
+      height: 14px;
+      background: var(--frame);
+      border: 1px solid var(--line);
+      position: relative;
+    }
+    .check:hover .box { background: var(--frame-hi); }
+    .check input:checked + .box { background: var(--accent); border-color: var(--accent-hi); }
+    .check input:checked + .box::after {
+      content: "";
+      position: absolute;
+      left: 4px; top: 1px;
+      width: 4px; height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(42deg);
+    }
 
-    footer { padding-top: 8px; }
+    /* Footer */
+    footer {
+      flex: none;
+      background: var(--header);
+      border-top: 1px solid var(--line);
+      padding: 7px;
+    }
     #toggle {
       width: 100%;
-      border: 0;
-      border-radius: 12px;
-      padding: 13px;
-      font-size: 14px;
-      font-weight: 700;
+      border: 1px solid var(--accent-hi);
       background: var(--accent);
-      color: #04140e;
+      color: #fff;
+      padding: 7px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
     }
-    #toggle.stop { background: var(--danger); color: #1a0508; }
-    #toggle:disabled { opacity: 0.55; cursor: wait; }
+    #toggle:hover { background: var(--accent-hi); }
+    #toggle.stop { background: var(--danger); border-color: #c95c62; }
+    #toggle.stop:hover { background: #c95c62; }
+    #toggle:disabled { opacity: .5; cursor: wait; }
     #status {
-      margin-top: 8px;
+      margin-top: 6px;
       color: var(--muted);
-      font-size: 12px;
-      min-height: 16px;
+      font-size: 11px;
+      min-height: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <header>
-      <div class="brand"><h1>Carbon</h1></div>
-      <div id="badge" class="badge">IDLE</div>
-    </header>
+    <div class="titlebar" id="titlebar">
+      <span class="name">Carbon</span>
+      <span class="sep"></span>
+      <span id="badge" class="badge">IDLE</span>
+    </div>
 
-    <section class="telemetry">
+    <div class="telemetry">
       <div class="stat"><label>DETECT</label><div class="val" id="hz">—<small>hz</small></div></div>
       <div class="stat"><label>INFER</label><div class="val" id="ms">—<small>ms</small></div></div>
       <div class="stat"><label>LOCK</label><div class="val" id="conf">—<small>conf</small></div></div>
-    </section>
+    </div>
 
     <div class="tabs">
       <button class="active" data-tab="track">Track</button>
+      <button data-tab="aim">Aim</button>
+      <button data-tab="stabilizer">Stabilizer</button>
       <button data-tab="vision">Vision</button>
+      <div class="grow"></div>
     </div>
 
     <section id="track" class="panel active">
-      <div class="card">
-        <h2>GAME</h2>
-        <div class="seg" id="models">
-          <button data-model="FN">FN</button>
-          <button data-model="AL">Apex</button>
-          <button data-model="VAL">VAL</button>
-          <button data-model="R6">R6</button>
-          <button data-model="COLOR">Color</button>
+      <details open>
+        <summary>DETECTION</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">Source</span>
+            <div class="ctl seg" id="detectionMode">
+              <button class="ig active" data-mode="model">AI Model</button>
+              <button class="ig" data-mode="color">Color</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lab">Range</span>
+            <div class="ctl seg" id="detectionRange">
+              <button class="ig" data-range="close">Close</button>
+              <button class="ig active" data-range="balanced">Balanced</button>
+              <button class="ig" data-range="far">Far</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lab">Output</span>
+            <div class="ctl seg" id="inputMode">
+              <button class="ig active" data-input="mouse">Mouse</button>
+              <button class="ig" data-input="controller">Controller</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lab">Assist</span>
+            <div class="ctl seg" id="assistMode">
+              <button class="ig active" data-assist="aim">Aim</button>
+              <button class="ig" data-assist="trigger">Trigger</button>
+              <button class="ig" data-assist="both">Both</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lab">Game</span>
+            <div class="ctl seg" id="models">
+              <button class="ig active" data-model="AL">Apex</button>
+            </div>
+          </div>
+          <div class="row" id="colorCard" style="display:none">
+            <span class="lab">Color</span>
+            <div class="ctl">
+              <select class="ig" id="colorPreset">
+                <option value="purple">Purple (Fortnite)</option>
+                <option value="yellow">Yellow</option>
+                <option value="red">Red</option>
+                <option value="orange">Orange</option>
+                <option value="cyan">Cyan</option>
+                <option value="white">White / Bright</option>
+              </select>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="card" id="colorCard" style="display:none">
-        <h2>COLOR TARGET</h2>
-        <div class="row">
-          <span>Target color</span>
-          <select id="colorPreset">
-            <option value="purple">Purple (Fortnite)</option>
-            <option value="yellow">Yellow</option>
-            <option value="red">Red</option>
-            <option value="orange">Orange</option>
-            <option value="cyan">Cyan</option>
-            <option value="white">White/Bright</option>
-          </select>
+      </details>
+
+      <details open>
+        <summary>ACTIVATION</summary>
+        <div class="body">
+          <div class="row" id="mouseBindRow">
+            <span class="lab">Mouse bind</span>
+            <div class="ctl">
+              <select class="ig" id="bind"></select>
+              <button class="ig" id="captureBind">Bind</button>
+            </div>
+          </div>
+          <div class="row" id="controllerBindRow">
+            <span class="lab">Controller</span>
+            <div class="ctl">
+              <select class="ig" id="controllerBind"></select>
+              <button class="ig" id="captureControllerBind">Bind</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lab">Active</span>
+            <div class="ctl"><span class="val" id="bindLabel">RMB</span></div>
+          </div>
         </div>
-      </div>
-      <div class="card">
-        <h2>ACTIVATION</h2>
-        <div class="row"><span>Hold to track</span><b id="bindLabel">RMB</b></div>
-        <div class="row">
-          <select id="bind"></select>
-          <button id="capture">Capture</button>
+      </details>
+
+      <details open>
+        <summary>OUTPUT</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">Mouse</span>
+            <div class="ctl"><span class="val" id="mouseLabel">Razer Synapse</span></div>
+          </div>
+          <div class="row">
+            <span class="lab">Capture</span>
+            <div class="ctl">
+              <select class="ig" id="captureMethod">
+                <option value="dxcam">DXGI desktop duplication (fastest)</option>
+                <option value="wgc">Windows Graphics Capture (most compatible)</option>
+                <option value="bitblt">BitBlt (GDI)</option>
+                <option value="mss">MSS (fallback)</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <span class="lab"></span>
+            <div class="ctl"><button class="ig" id="testMouse" style="flex:1">Test Mouse</button></div>
+          </div>
         </div>
-      </div>
-      <div class="card">
-        <h2>OUTPUT</h2>
-        <div class="row">
-          <span>Mouse driver</span>
-          <select id="mouse">
-            <option value="razer">Razer Synapse</option>
-            <option value="win32">Win32</option>
-          </select>
+      </details>
+    </section>
+
+    <section id="aim" class="panel">
+      <details open>
+        <summary>AIM HEIGHT</summary>
+        <div class="body">
+          <div class="skelwrap">
+            <div class="skel" id="skel">
+              <svg id="skelSvg" viewBox="0 0 120 230">
+                <!-- Skeleton drawn to human proportions so the height you pick
+                     lands on the body part the readout names. -->
+                <g class="bone">
+                  <!-- skull and jaw -->
+                  <ellipse class="skull" cx="60" cy="22" rx="12" ry="14" />
+                  <circle class="socket" cx="55.5" cy="20" r="2.9" />
+                  <circle class="socket" cx="64.5" cy="20" r="2.9" />
+                  <path class="bone thin" d="M53 31 Q60 37 67 31" />
+                  <!-- cervical spine -->
+                  <path d="M60 36 L60 47" />
+                  <path class="bone thin" d="M56 39 L64 39 M56 43 L64 43" />
+                  <!-- clavicles and shoulders -->
+                  <path d="M45 48 L75 48" />
+                  <circle cx="44" cy="49" r="2.6" />
+                  <circle cx="76" cy="49" r="2.6" />
+                  <!-- spine -->
+                  <path d="M60 47 L60 110" />
+                  <!-- ribs -->
+                  <path class="bone thin" d="M60 55 Q45 57 43 66" />
+                  <path class="bone thin" d="M60 55 Q75 57 77 66" />
+                  <path class="bone thin" d="M60 62 Q44 64 42 74" />
+                  <path class="bone thin" d="M60 62 Q76 64 78 74" />
+                  <path class="bone thin" d="M60 69 Q44 71 43 81" />
+                  <path class="bone thin" d="M60 69 Q76 71 77 81" />
+                  <path class="bone thin" d="M60 76 Q46 78 45 87" />
+                  <path class="bone thin" d="M60 76 Q74 78 75 87" />
+                  <path class="bone thin" d="M60 83 Q48 85 48 92" />
+                  <path class="bone thin" d="M60 83 Q72 85 72 92" />
+                  <!-- pelvis -->
+                  <path d="M47 110 Q60 104 73 110 Q72 122 60 124 Q48 122 47 110 Z" />
+                  <!-- arms -->
+                  <path d="M44 51 L37 81" />
+                  <path d="M37 83 L33 112" />
+                  <path class="bone thin" d="M33 114 L31 121 M33 114 L35 121" />
+                  <path d="M76 51 L83 81" />
+                  <path d="M83 83 L87 112" />
+                  <path class="bone thin" d="M87 114 L85 121 M87 114 L89 121" />
+                  <!-- legs -->
+                  <path d="M54 123 L51 162" />
+                  <path d="M66 123 L69 162" />
+                  <circle cx="51" cy="164" r="2.6" />
+                  <circle cx="69" cy="164" r="2.6" />
+                  <path d="M51 167 L49 213" />
+                  <path d="M69 167 L71 213" />
+                  <path d="M49 215 L41 220" />
+                  <path d="M71 215 L79 220" />
+                </g>
+                <line class="aimline" id="aimLine" x1="5" y1="60" x2="115" y2="60" />
+                <circle class="aimdot" id="aimDot" cx="60" cy="60" r="4.5" />
+                <polygon class="aimgrab" id="aimGrab" points="0,-5 6,0 0,5" />
+              </svg>
+            </div>
+            <div class="skelside">
+              <div class="readout">
+                <div class="part" id="heightVal">Chest</div>
+                <div class="pct"><span id="heightPct">0.62</span> of height</div>
+              </div>
+              <div class="bonecol bone">
+                <button class="ig" data-h="0.93">Head</button>
+                <button class="ig" data-h="0.80">Neck</button>
+                <button class="ig" data-h="0.72">Chest</button>
+                <button class="ig" data-h="0.60">Stomach</button>
+              </div>
+              <div class="hint">Drag anywhere on the figure to set where the aim lands.</div>
+            </div>
+          </div>
+          <input id="height" type="range" min="0" max="1" step="0.005" hidden />
         </div>
-        <div class="row">
-          <span>Screen capture</span>
-          <select id="capture">
-            <option value="dxcam">DXGI (dxcam)</option>
-            <option value="mss">GDI (mss)</option>
-          </select>
+      </details>
+
+      <details open>
+        <summary>TRACKING</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">Speed</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="speedVal">3.80</div>
+              <input id="speed" type="range" min="0.5" max="5" step="0.01" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">Lead</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="leadVal">1.00</div>
+              <input id="lead" type="range" min="0" max="1.5" step="0.01" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">Smooth</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="smoothVal">0.28</div>
+              <input id="smooth" type="range" min="0.05" max="0.9" step="0.01" /></div></div>
+          </div>
         </div>
-      </div>
-      <div class="card">
-        <h2>AIM</h2>
-        <div class="slider"><div class="top"><span>Speed</span><b id="speedVal">3.80</b></div>
-          <input id="speed" type="range" min="0.5" max="5" step="0.01" /></div>
-        <div class="slider"><div class="top"><span>Lead</span><b id="leadVal">1.00</b></div>
-          <input id="lead" type="range" min="0" max="1.5" step="0.01" /></div>
-        <div class="slider"><div class="top"><span>Smooth</span><b id="smoothVal">0.28</b></div>
-          <input id="smooth" type="range" min="0.05" max="0.9" step="0.01" /></div>
-        <div class="row"><span>Bone</span></div>
-        <div class="bone">
-          <button data-h="0.92">Head</button>
-          <button data-h="0.62">Chest</button>
-          <button data-h="0.42">Belly</button>
+      </details>
+
+      <details open>
+        <summary>TRIGGER</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">Delay</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="trigDelayVal">40 ms</div>
+              <input id="trigDelay" type="range" min="0" max="300" step="5" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">Rate</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="trigRateVal">140 ms</div>
+              <input id="trigRate" type="range" min="20" max="600" step="5" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">Hit area</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="trigBoxVal">55%</div>
+              <input id="trigBox" type="range" min="0.1" max="1" step="0.01" /></div></div>
+          </div>
+          <div class="hint" id="trigHint" style="font-size:10px;color:#6e757e">
+            Inactive — set Assist to Trigger or Both on the Track tab.
+          </div>
         </div>
-        <div class="slider"><div class="top"><span>Height</span><b id="heightVal">Chest</b></div>
-          <input id="height" type="range" min="0" max="1" step="0.01" /></div>
-      </div>
+      </details>
+    </section>
+
+    <section id="stabilizer" class="panel">
+      <details open>
+        <summary>PID CONTROLLER</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">P Gain</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="pidKpVal">0.78</div>
+              <input id="pidKp" type="range" min="0.05" max="1.5" step="0.01" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">I Gain</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="pidKiVal">0.80</div>
+              <input id="pidKi" type="range" min="0" max="5" step="0.1" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">D Gain</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="pidKdVal">0.002</div>
+              <input id="pidKd" type="range" min="0" max="0.05" step="0.001" /></div></div>
+          </div>
+          <div class="hint" style="font-size:10px;color:#6e757e;margin-bottom:8px">
+            P = snap speed, I = steady-state accuracy, D = overshoot damping
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>VELOCITY TRACKING</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">Feedforward</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="pidFfVal">0.96</div>
+              <input id="pidFf" type="range" min="0" max="1.2" step="0.01" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">Smoothing</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="pidSmoothVal">0.65</div>
+              <input id="pidSmooth" type="range" min="0.1" max="0.95" step="0.01" /></div></div>
+          </div>
+          <div class="hint" style="font-size:10px;color:#6e757e">
+            Feedforward matches target velocity. Smoothing filters jitter.
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>PRESETS</summary>
+        <div class="body">
+          <div class="row">
+            <div class="ctl seg">
+              <button class="ig" id="presetSnappy">Snappy</button>
+              <button class="ig" id="presetSmooth">Smooth</button>
+              <button class="ig" id="presetDefault">Default</button>
+            </div>
+          </div>
+        </div>
+      </details>
     </section>
 
     <section id="vision" class="panel">
-      <div class="card">
-        <h2>CAPTURE</h2>
-        <div class="slider"><div class="top"><span>FOV idle</span><b id="fovVal">180</b></div>
-          <input id="fov" type="range" min="40" max="600" step="1" /></div>
-        <label class="check"><input id="dynFov" type="checkbox" /> Expand FOV while bind is held</label>
-        <div class="slider"><div class="top"><span>FOV held</span><b id="fovHeldVal">280</b></div>
-          <input id="fovHeld" type="range" min="40" max="600" step="1" /></div>
-        <div class="slider"><div class="top"><span>Confidence</span><b id="confVal">0.35</b></div>
-          <input id="confidence" type="range" min="0.1" max="0.9" step="0.01" /></div>
-      </div>
-      <div class="card">
-        <h2>DISPLAY</h2>
-        <label class="check"><input id="debug" type="checkbox" /> Debug preview window</label>
-        <label class="check"><input id="overlay" type="checkbox" /> FOV overlay on screen</label>
-      </div>
+      <details open>
+        <summary>CAPTURE</summary>
+        <div class="body">
+          <div class="row">
+            <span class="lab">FOV idle</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="fovVal">180</div>
+              <input id="fov" type="range" min="40" max="600" step="1" /></div></div>
+          </div>
+          <div class="row">
+            <span class="lab">FOV held</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="fovHeldVal">280</div>
+              <input id="fovHeld" type="range" min="40" max="600" step="1" /></div></div>
+          </div>
+          <label class="check">
+            <input id="dynFov" type="checkbox" /><span class="box"></span>Expand FOV while bind is held
+          </label>
+          <div class="row">
+            <span class="lab">Confidence</span>
+            <div class="ctl"><div class="sl"><div class="fill"></div><div class="txt" id="confVal">0.35</div>
+              <input id="confidence" type="range" min="0.1" max="0.9" step="0.01" /></div></div>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>DISPLAY</summary>
+        <div class="body">
+          <label class="check">
+            <input id="debug" type="checkbox" /><span class="box"></span>Debug preview window
+          </label>
+          <label class="check">
+            <input id="overlay" type="checkbox" /><span class="box"></span>FOV overlay on screen
+          </label>
+          <label class="check">
+            <input id="israelMode" type="checkbox" /><span class="box"></span>Israel mode &#10017;
+          </label>
+        </div>
+      </details>
     </section>
 
     <footer>
@@ -311,15 +696,58 @@
   </div>
   <script>
     const $ = (id) => document.getElementById(id);
-    const BIND_NAMES = {right:'RMB', left:'LMB', middle:'MMB', x1:'Mouse4', x2:'Mouse5'};
+    const BIND_NAMES = {
+      right:'RMB', left:'LMB', middle:'MMB', x1:'Mouse4', x2:'Mouse5',
+      gp_a:'🎮 A', gp_b:'🎮 B', gp_x:'🎮 X', gp_y:'🎮 Y',
+      gp_lb:'🎮 LB', gp_rb:'🎮 RB', gp_lt:'🎮 LT', gp_rt:'🎮 RT',
+      gp_ls:'🎮 LS', gp_rs:'🎮 RS', gp_start:'🎮 Start', gp_back:'🎮 Back',
+      gp_up:'🎮 D-Up', gp_down:'🎮 D-Down', gp_left:'🎮 D-Left', gp_right:'🎮 D-Right'
+    };
     let applyTimer = null;
     let busy = false;
 
+    // Named to match where the drawn skeleton actually puts each landmark, so
+    // the readout agrees with the figure you are dragging on.
     function heightName(v) {
-      if (v >= 0.82) return 'Head';
-      if (v >= 0.55) return 'Chest';
-      if (v >= 0.32) return 'Belly';
-      return 'Feet';
+      if (v >= 0.86) return 'Head';
+      if (v >= 0.76) return 'Neck';
+      if (v >= 0.65) return 'Chest';
+      if (v >= 0.55) return 'Stomach';
+      if (v >= 0.45) return 'Hips';
+      if (v >= 0.28) return 'Thighs';
+      return 'Shins';
+    }
+
+    // Figure extent inside the 230-unit viewBox: 1.0 is the top of the skull,
+    // 0.0 the soles.
+    const SK_TOP = 8, SK_BOT = 222, SK_VIEW = 230;
+
+    function setHeight(v, push) {
+      v = Math.max(0, Math.min(1, v));
+      $('height').value = v;
+      const y = SK_BOT - (SK_BOT - SK_TOP) * v;
+      $('aimLine').setAttribute('y1', y);
+      $('aimLine').setAttribute('y2', y);
+      $('aimDot').setAttribute('cy', y);
+      $('aimGrab').setAttribute('transform', `translate(5,${y})`);
+      $('heightVal').textContent = heightName(v);
+      $('heightPct').textContent = v.toFixed(2);
+      document.querySelectorAll('.bonecol button').forEach((b) => {
+        b.classList.toggle('active', Math.abs(Number(b.dataset.h) - v) < 0.015);
+      });
+      if (push) scheduleApply();
+    }
+
+    // Sliders are drawn rather than native, so the filled portion has to be
+    // repainted whenever the value changes -- by drag, or by hydrate/preset.
+    function paint(id) {
+      const el = $(id);
+      const min = Number(el.min), max = Number(el.max);
+      const pct = max > min ? (Number(el.value) - min) / (max - min) * 100 : 0;
+      el.parentElement.querySelector('.fill').style.width = pct + '%';
+    }
+    function paintAll() {
+      document.querySelectorAll('.sl input[type=range]').forEach((el) => paint(el.id));
     }
 
     function setNum(id, v, digits) {
@@ -328,10 +756,17 @@
 
     function collect() {
       return {
-        active_model: document.querySelector('#models button.active')?.dataset.model || 'FN',
+        active_model: document.querySelector('#models button.active')?.dataset.model || 'AL',
+        detection_mode: document.querySelector('#detectionMode button.active')?.dataset.mode || 'model',
+        detection_range: document.querySelector('#detectionRange button.active')?.dataset.range || 'balanced',
+        input_mode: document.querySelector('#inputMode button.active')?.dataset.input || 'mouse',
+        controller_bind: $('controllerBind').value,
+        assist_mode: document.querySelector('#assistMode button.active')?.dataset.assist || 'aim',
+        trigger_delay_ms: Number($('trigDelay').value),
+        trigger_cooldown_ms: Number($('trigRate').value),
+        trigger_box_scale: Number($('trigBox').value),
         bind_key: $('bind').value,
-        mouse_method: $('mouse').value,
-        capture_method: $('capture').value,
+        capture_method: $('captureMethod').value,
         color_preset: $('colorPreset').value,
         track_speed: Number($('speed').value),
         aim_lead: Number($('lead').value),
@@ -343,12 +778,40 @@
         confidence: Number($('confidence').value),
         show_debug: $('debug').checked,
         show_overlay: $('overlay').checked,
+        israel_mode: $('israelMode').checked,
+        pid_kp: Number($('pidKp').value),
+        pid_ki: Number($('pidKi').value),
+        pid_kd: Number($('pidKd').value),
+        pid_ff: Number($('pidFf').value),
+        pid_smoothing: Number($('pidSmooth').value),
       };
     }
-    
+
     function updateColorCard() {
-      const isColor = document.querySelector('#models button.active')?.dataset.model === 'COLOR';
-      $('colorCard').style.display = isColor ? 'block' : 'none';
+      const isColor = document.querySelector('#detectionMode button.active')?.dataset.mode === 'color';
+      $('colorCard').style.display = isColor ? 'flex' : 'none';
+    }
+
+    function updateTriggerHint() {
+      const mode = document.querySelector('#assistMode button.active')?.dataset.assist || 'aim';
+      $('trigHint').style.display = mode === 'aim' ? 'block' : 'none';
+    }
+
+    function updateBindVisibility() {
+      const inputMode = document.querySelector('#inputMode button.active')?.dataset.input || 'mouse';
+      $('mouseBindRow').style.display = inputMode === 'mouse' ? 'flex' : 'none';
+      $('controllerBindRow').style.display = inputMode === 'controller' ? 'flex' : 'none';
+    }
+
+    function updateBindLabel() {
+      const inputMode = document.querySelector('#inputMode button.active')?.dataset.input || 'mouse';
+      if (inputMode === 'controller') {
+        const bind = $('controllerBind').value;
+        $('bindLabel').textContent = BIND_NAMES[bind] || bind.toUpperCase();
+      } else {
+        const bind = $('bind').value;
+        $('bindLabel').textContent = BIND_NAMES[bind] || bind.toUpperCase();
+      }
     }
 
     function scheduleApply() {
@@ -360,26 +823,57 @@
       document.querySelectorAll('#models button').forEach((b) => {
         b.classList.toggle('active', b.dataset.model === cfg.active_model);
       });
-      $('bind').innerHTML = binds.map((k) => `<option value="${k}">${BIND_NAMES[k] || k.toUpperCase()}</option>`).join('');
+      document.querySelectorAll('#detectionMode button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.mode === (cfg.detection_mode || 'model'));
+      });
+      document.querySelectorAll('#detectionRange button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.range === (cfg.detection_range || 'balanced'));
+      });
+      document.querySelectorAll('#inputMode button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.input === (cfg.input_mode || 'mouse'));
+      });
+      document.querySelectorAll('#assistMode button').forEach((b) => {
+        b.classList.toggle('active', b.dataset.assist === (cfg.assist_mode || 'aim'));
+      });
+      updateTriggerHint();
+      updateBindVisibility();
+      // Mouse binds (non-controller)
+      const mousebinds = binds.filter(k => !k.startsWith('gp_'));
+      $('bind').innerHTML = mousebinds.map((k) => `<option value="${k}">${BIND_NAMES[k] || k.toUpperCase()}</option>`).join('');
       $('bind').value = cfg.bind_key;
-      $('bindLabel').textContent = BIND_NAMES[cfg.bind_key] || cfg.bind_key.toUpperCase();
-      $('mouse').value = cfg.mouse_method;
-      $('capture').value = cfg.capture_method || 'dxcam';
+      // Controller binds only
+      const gpbinds = binds.filter(k => k.startsWith('gp_'));
+      $('controllerBind').innerHTML = gpbinds.map((k) => `<option value="${k}">${BIND_NAMES[k] || k.toUpperCase()}</option>`).join('');
+      $('controllerBind').value = cfg.controller_bind || 'gp_lt';
+      updateBindLabel();
+      $('mouseLabel').textContent = cfg.mouse_label || 'Razer Synapse';
+      $('captureMethod').value = cfg.capture_method || 'dxcam';
       $('colorPreset').value = cfg.color_preset || 'purple';
       updateColorCard();
       $('speed').value = cfg.track_speed; setNum('speedVal', cfg.track_speed, 2);
       $('lead').value = cfg.aim_lead; setNum('leadVal', cfg.aim_lead, 2);
       $('smooth').value = cfg.aim_smooth; setNum('smoothVal', cfg.aim_smooth, 2);
-      $('height').value = cfg.aim_offset_y; $('heightVal').textContent = heightName(cfg.aim_offset_y);
-      document.querySelectorAll('.bone button').forEach((b) => {
-        b.classList.toggle('active', Math.abs(Number(b.dataset.h) - cfg.aim_offset_y) < 0.03);
-      });
+      setHeight(Number(cfg.aim_offset_y), false);
+      $('trigDelay').value = cfg.trigger_delay_ms ?? 40;
+      $('trigDelayVal').textContent = Math.round($('trigDelay').value) + ' ms';
+      $('trigRate').value = cfg.trigger_cooldown_ms ?? 140;
+      $('trigRateVal').textContent = Math.round($('trigRate').value) + ' ms';
+      $('trigBox').value = cfg.trigger_box_scale ?? 0.55;
+      $('trigBoxVal').textContent = Math.round($('trigBox').value * 100) + '%';
       $('fov').value = cfg.fov_radius; $('fovVal').textContent = Math.round(cfg.fov_radius);
       $('fovHeld').value = cfg.fov_radius_held; $('fovHeldVal').textContent = Math.round(cfg.fov_radius_held);
       $('dynFov').checked = !!cfg.dynamic_fov_enabled;
       $('confidence').value = cfg.confidence; setNum('confVal', cfg.confidence, 2);
       $('debug').checked = !!cfg.show_debug;
       $('overlay').checked = !!cfg.show_overlay;
+      $('israelMode').checked = !!cfg.israel_mode;
+      // PID stabilizer
+      $('pidKp').value = cfg.pid_kp ?? 0.78; setNum('pidKpVal', $('pidKp').value, 2);
+      $('pidKi').value = cfg.pid_ki ?? 0.8; setNum('pidKiVal', $('pidKi').value, 2);
+      $('pidKd').value = cfg.pid_kd ?? 0.002; $('pidKdVal').textContent = Number($('pidKd').value).toFixed(3);
+      $('pidFf').value = cfg.pid_ff ?? 0.96; setNum('pidFfVal', $('pidFf').value, 2);
+      $('pidSmooth').value = cfg.pid_smoothing ?? 0.65; setNum('pidSmoothVal', $('pidSmooth').value, 2);
+      paintAll();
     }
 
     function paintStats(s) {
@@ -389,6 +883,7 @@
       $('ms').innerHTML = (s.infer_ms > 0 ? Math.round(s.infer_ms) : '—') + '<small>ms</small>';
       $('conf').innerHTML = (s.target_conf != null ? Math.round(s.target_conf * 100) + '%' : '—') + '<small>conf</small>';
       if (s.detail) $('status').textContent = s.detail;
+      if (s.mouse_label) $('mouseLabel').textContent = s.mouse_label;
       if (s.running) {
         $('toggle').textContent = 'Stop Tracker';
         $('toggle').classList.add('stop');
@@ -404,6 +899,7 @@
         document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
         btn.classList.add('active');
         $(btn.dataset.tab).classList.add('active');
+        paintAll();   // a hidden panel has no width to measure, so redraw on show
       };
     });
 
@@ -411,37 +907,152 @@
       btn.onclick = () => {
         document.querySelectorAll('#models button').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
+        scheduleApply();
+      };
+    });
+    document.querySelectorAll('#detectionMode button').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('#detectionMode button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
         updateColorCard();
         scheduleApply();
       };
     });
-    $('colorPreset').onchange = scheduleApply;
-    document.querySelectorAll('.bone button').forEach((btn) => {
+    document.querySelectorAll('#assistMode button').forEach((btn) => {
       btn.onclick = () => {
-        $('height').value = btn.dataset.h;
-        $('heightVal').textContent = heightName(Number(btn.dataset.h));
-        document.querySelectorAll('.bone button').forEach((b) => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('#assistMode button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateTriggerHint();
         scheduleApply();
       };
     });
+    document.querySelectorAll('#detectionRange button').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('#detectionRange button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        scheduleApply();
+      };
+    });
+    document.querySelectorAll('#inputMode button').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('#inputMode button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateBindVisibility();
+        updateBindLabel();
+        scheduleApply();
+      };
+    });
+    $('colorPreset').onchange = scheduleApply;
+    $('israelMode').onchange = scheduleApply;
+    document.querySelectorAll('.bonecol button').forEach((btn) => {
+      btn.onclick = () => setHeight(Number(btn.dataset.h), true);
+    });
+
+    // Drag the aim height straight on the figure.
+    const skel = $('skel'), skelSvg = $('skelSvg');
+    let skelDrag = false;
+    const skelValue = (ev) => {
+      const r = skelSvg.getBoundingClientRect();
+      const y = (ev.clientY - r.top) / r.height * SK_VIEW;
+      return (SK_BOT - y) / (SK_BOT - SK_TOP);
+    };
+    skel.addEventListener('pointerdown', (ev) => {
+      skelDrag = true;
+      // Keeps the drag alive once the pointer leaves the small figure box.
+      try { skel.setPointerCapture(ev.pointerId); } catch (_) {}
+      setHeight(skelValue(ev), true);
+      ev.preventDefault();
+    });
+    skel.addEventListener('pointermove', (ev) => {
+      if (skelDrag) setHeight(skelValue(ev), true);
+    });
+    const skelEnd = (ev) => {
+      skelDrag = false;
+      try { skel.releasePointerCapture(ev.pointerId); } catch (_) {}
+    };
+    skel.addEventListener('pointerup', skelEnd);
+    skel.addEventListener('pointercancel', skelEnd);
+
+    [['trigDelay','trigDelayVal',(v) => Math.round(v) + ' ms'],
+     ['trigRate','trigRateVal',(v) => Math.round(v) + ' ms'],
+     ['trigBox','trigBoxVal',(v) => Math.round(v * 100) + '%']].forEach(([id, lab, fmt]) => {
+      $(id).oninput = () => { $(lab).textContent = fmt(Number($(id).value)); paint(id); scheduleApply(); };
+    });
+
+    // PID stabilizer sliders
+    [['pidKp','pidKpVal',2],['pidKi','pidKiVal',2],['pidFf','pidFfVal',2],['pidSmooth','pidSmoothVal',2]].forEach(([id, lab, d]) => {
+      $(id).oninput = () => { setNum(lab, $(id).value, d); paint(id); scheduleApply(); };
+    });
+    $('pidKd').oninput = () => { $('pidKdVal').textContent = Number($('pidKd').value).toFixed(3); paint('pidKd'); scheduleApply(); };
+
+    // Presets
+    $('presetSnappy').onclick = () => {
+      $('pidKp').value = 1.2; setNum('pidKpVal', 1.2, 2);
+      $('pidKi').value = 1.5; setNum('pidKiVal', 1.5, 2);
+      $('pidKd').value = 0.001; $('pidKdVal').textContent = '0.001';
+      $('pidFf').value = 1.0; setNum('pidFfVal', 1.0, 2);
+      $('pidSmooth').value = 0.5; setNum('pidSmoothVal', 0.5, 2);
+      paintAll(); scheduleApply();
+    };
+    $('presetSmooth').onclick = () => {
+      $('pidKp').value = 0.5; setNum('pidKpVal', 0.5, 2);
+      $('pidKi').value = 0.3; setNum('pidKiVal', 0.3, 2);
+      $('pidKd').value = 0.01; $('pidKdVal').textContent = '0.010';
+      $('pidFf').value = 0.85; setNum('pidFfVal', 0.85, 2);
+      $('pidSmooth').value = 0.8; setNum('pidSmoothVal', 0.8, 2);
+      paintAll(); scheduleApply();
+    };
+    $('presetDefault').onclick = () => {
+      $('pidKp').value = 0.78; setNum('pidKpVal', 0.78, 2);
+      $('pidKi').value = 0.8; setNum('pidKiVal', 0.8, 2);
+      $('pidKd').value = 0.002; $('pidKdVal').textContent = '0.002';
+      $('pidFf').value = 0.96; setNum('pidFfVal', 0.96, 2);
+      $('pidSmooth').value = 0.65; setNum('pidSmoothVal', 0.65, 2);
+      paintAll(); scheduleApply();
+    };
 
     [['speed','speedVal',2],['lead','leadVal',2],['smooth','smoothVal',2],['confidence','confVal',2]].forEach(([id, lab, d]) => {
-      $(id).oninput = () => { setNum(lab, $(id).value, d); scheduleApply(); };
+      $(id).oninput = () => { setNum(lab, $(id).value, d); paint(id); scheduleApply(); };
     });
-    $('height').oninput = () => { $('heightVal').textContent = heightName(Number($('height').value)); scheduleApply(); };
-    $('fov').oninput = () => { $('fovVal').textContent = Math.round($('fov').value); scheduleApply(); };
-    $('fovHeld').oninput = () => { $('fovHeldVal').textContent = Math.round($('fovHeld').value); scheduleApply(); };
-    $('bind').onchange = () => { $('bindLabel').textContent = BIND_NAMES[$('bind').value] || $('bind').value.toUpperCase(); scheduleApply(); };
-    $('mouse').onchange = scheduleApply;
+    $('fov').oninput = () => { $('fovVal').textContent = Math.round($('fov').value); paint('fov'); scheduleApply(); };
+    $('fovHeld').oninput = () => { $('fovHeldVal').textContent = Math.round($('fovHeld').value); paint('fovHeld'); scheduleApply(); };
+    $('bind').onchange = () => { updateBindLabel(); scheduleApply(); };
+    $('controllerBind').onchange = () => { updateBindLabel(); scheduleApply(); };
     $('dynFov').onchange = scheduleApply;
     $('debug').onchange = scheduleApply;
     $('overlay').onchange = scheduleApply;
 
-    $('capture').onclick = async () => {
-      $('status').textContent = 'Press any key or mouse button';
+    $('testMouse').onclick = async () => {
+      $('status').textContent = 'Testing Razer mouse...';
+      $('testMouse').disabled = true;
+      try {
+        const res = await pywebview.api.test_mouse();
+        $('status').textContent = res.message || 'Done';
+      } catch (err) {
+        $('status').textContent = String(err);
+      }
+      $('testMouse').disabled = false;
+    };
+
+    $('captureMethod').onchange = scheduleApply;
+    $('captureBind').onclick = async () => {
+      $('status').textContent = 'Press a mouse button or key...';
       const key = await pywebview.api.capture_bind();
       $('bind').value = key;
-      $('bindLabel').textContent = BIND_NAMES[key] || key.toUpperCase();
+      updateBindLabel();
+      scheduleApply();
+    };
+
+    $('captureControllerBind').onclick = async () => {
+      $('status').textContent = 'Press a controller button...';
+      const key = await pywebview.api.capture_bind();
+      if (key.startsWith('gp_')) {
+        $('controllerBind').value = key;
+        updateBindLabel();
+        scheduleApply();
+      } else {
+        $('status').textContent = 'Not a controller button, try again';
+      }
     };
 
     $('toggle').onclick = async () => {
@@ -459,6 +1070,8 @@
       busy = false;
       $('toggle').disabled = false;
     };
+
+    window.addEventListener('resize', paintAll);
 
     window.addEventListener('pywebviewready', async () => {
       const boot = await pywebview.api.bootstrap();

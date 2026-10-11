@@ -1,131 +1,161 @@
+"""RZCONTROL mouse — API matches old rzctl, packet matches modern Synapse."""
+from __future__ import annotations
+
+import ctypes
+from ctypes import wintypes
+
 from exoai_tracker.rzctl.rzctl_nt import (
     FILE_SHARE_READ,
     FILE_SHARE_WRITE,
     OPEN_EXISTING,
-    Structure,
-    byref,
-    c_int32,
-    c_ulong,
     find_sym_link,
-    kernel32,
-    pointer,
-    sizeof,
 )
 
+kernel32 = ctypes.windll.kernel32
+GENERIC_WRITE = 0x40000000
+IOCTL_MOUSE = 0x88883020
+MAX_VAL = 65536
+INVALID = 0xFFFFFFFFFFFFFFFF
 
-def enum(**enums):
-    return type("Enum", (), enums)
-
-
-MOUSE_CLICK = enum(
-    LEFT_DOWN=1,
-    LEFT_UP=2,
-    RIGHT_DOWN=4,
-    RIGHT_UP=8,
-    SCROLL_CLICK_DOWN=16,
-    SCROLL_CLICK_UP=32,
-    BACK_DOWN=64,
-    BACK_UP=128,
-    FOWARD_DOWN=256,
-    FOWARD_UP=512,
-    SCROLL_DOWN=4287104000,
-    SCROLL_UP=7865344,
-)
-
-KEYBOARD_INPUT_TYPE = enum(KEYBOARD_DOWN=0, KEYBOARD_UP=1)
+kernel32.CreateFileW.argtypes = [
+    wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+    wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+]
+kernel32.CreateFileW.restype = wintypes.HANDLE
+kernel32.DeviceIoControl.argtypes = [
+    wintypes.HANDLE, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD,
+    wintypes.LPVOID, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID,
+]
+kernel32.DeviceIoControl.restype = wintypes.BOOL
+kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
 
 
-class RZCONTROL_IOCTL_STRUCT(Structure):
+class MouseInputData(ctypes.Structure):
+    _pack_ = 4
     _fields_ = [
-        ("unk0", c_int32),
-        ("unk1", c_int32),
-        ("max_val_or_scan_code", c_int32),
-        ("click_mask", c_int32),
-        ("unk3", c_int32),
-        ("x", c_int32),
-        ("y", c_int32),
-        ("unk4", c_int32),
+        ("absolute_coord", ctypes.c_uint32),
+        ("button_flags", ctypes.c_uint16),
+        ("movement", ctypes.c_int16),
+        ("unk1", ctypes.c_uint32),
+        ("x", ctypes.c_int32),
+        ("y", ctypes.c_int32),
+        ("unk2", ctypes.c_uint32),
     ]
 
 
-IOCTL_MOUSE = 0x88883020
-MAX_VAL = 65536
-RZCONTROL_MOUSE = 2
-RZCONTROL_KEYBOARD = 1
+class RzControl(ctypes.Structure):
+    _pack_ = 4
+    _fields_ = [
+        ("unk1", ctypes.c_uint32),
+        ("type", ctypes.c_uint32),
+        ("data", MouseInputData),
+    ]
 
 
-def _valid_handle(handle) -> bool:
-    if handle is None:
+assert ctypes.sizeof(RzControl) == 32
+
+
+def _valid(h) -> bool:
+    if h is None:
         return False
-    value = int(handle) & 0xFFFFFFFFFFFFFFFF
-    return 0 < value < 0xFFFFFFFFFFFFFFFF
+    v = int(h) & INVALID
+    return 0 < v < INVALID
 
 
 class RZCONTROL:
-    hDevice = None
+    """One instance = one handle. Do NOT share a class-level handle."""
+
+    def __init__(self) -> None:
+        self.hDevice = None
 
     def init(self) -> bool:
-        if _valid_handle(RZCONTROL.hDevice):
-            kernel32.CloseHandle(RZCONTROL.hDevice)
-        RZCONTROL.hDevice = None
-
+        self.close()
         found, name = find_sym_link("\\GLOBAL??", "RZCONTROL")
         if not found or not name:
             return False
-
-        sym_link = "\\\\?\\" + name
-        # Original rzctl opens with desiredAccess=0
-        handle = kernel32.CreateFileW(
-            sym_link,
-            0,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            0,
-            OPEN_EXISTING,
-            0,
-            0,
+        sym = "\\\\?\\" + name
+        h = kernel32.CreateFileW(
+            sym, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, None, OPEN_EXISTING, 0, None
         )
-        if not _valid_handle(handle):
-            RZCONTROL.hDevice = None
+        if not _valid(h):
+            h = kernel32.CreateFileW(
+                sym, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, None, OPEN_EXISTING, 0, None
+            )
+        if not _valid(h):
             return False
-
-        RZCONTROL.hDevice = handle
+        self.hDevice = h
         return True
 
-    def impl_mouse_ioctl(self, ioctl: RZCONTROL_IOCTL_STRUCT) -> bool:
-        if not ioctl or not _valid_handle(RZCONTROL.hDevice):
-            return False
-        p_ioctl = pointer(ioctl)
-        junk = c_ulong()
-        b_result = kernel32.DeviceIoControl(
-            RZCONTROL.hDevice,
+    def close(self) -> None:
+        if _valid(self.hDevice):
+            try:
+                kernel32.CloseHandle(self.hDevice)
+            except Exception:
+                pass
+        self.hDevice = None
+
+    def mouse_move(self, x: int, y: int, from_start_point: bool = True) -> bool:
+        if not _valid(self.hDevice):
+            if not self.init():
+                return False
+        pkt = RzControl()
+        pkt.unk1 = 0
+        pkt.type = 2
+        pkt.data.absolute_coord = 0 if from_start_point else MAX_VAL
+        pkt.data.button_flags = 0
+        pkt.data.movement = 1
+        pkt.data.unk1 = 0
+        pkt.data.x = int(x)
+        pkt.data.y = int(y)
+        pkt.data.unk2 = 0
+        junk = wintypes.DWORD(0)
+        ok = bool(
+            kernel32.DeviceIoControl(
+                self.hDevice,
+                IOCTL_MOUSE,
+                ctypes.byref(pkt),
+                ctypes.sizeof(pkt),
+                None,
+                0,
+                ctypes.byref(junk),
+                None,
+            )
+        )
+        if not ok:
+            if self.init():
+                ok = bool(
+                    kernel32.DeviceIoControl(
+                        self.hDevice,
+                        IOCTL_MOUSE,
+                        ctypes.byref(pkt),
+                        ctypes.sizeof(pkt),
+                        None,
+                        0,
+                        ctypes.byref(junk),
+                        None,
+                    )
+                )
+        return ok
+
+    def mouse_click(self, click_mask: int) -> None:
+        if not _valid(self.hDevice) and not self.init():
+            return
+        pkt = RzControl()
+        pkt.unk1 = 0
+        pkt.type = 2
+        pkt.data.absolute_coord = 0
+        pkt.data.button_flags = int(click_mask) & 0xFFFF
+        pkt.data.movement = 0
+        pkt.data.x = 0
+        pkt.data.y = 0
+        junk = wintypes.DWORD(0)
+        kernel32.DeviceIoControl(
+            self.hDevice,
             IOCTL_MOUSE,
-            p_ioctl,
-            sizeof(RZCONTROL_IOCTL_STRUCT),
+            ctypes.byref(pkt),
+            ctypes.sizeof(pkt),
+            None,
             0,
-            0,
-            byref(junk),
-            0,
+            ctypes.byref(junk),
+            None,
         )
-        if not b_result:
-            self.init()
-            return False
-        return True
-
-    def mouse_move(self, x: int, y: int, from_start_point: bool) -> bool:
-        max_val = 0
-        if not from_start_point:
-            max_val = MAX_VAL
-            if x < 1:
-                x = 1
-            if x > max_val:
-                x = max_val
-            if y < 1:
-                y = 1
-            if y > max_val:
-                y = max_val
-        mm = RZCONTROL_IOCTL_STRUCT(0, RZCONTROL_MOUSE, max_val, 0, 0, int(x), int(y), 0)
-        return self.impl_mouse_ioctl(mm)
-
-    def mouse_click(self, click_mask: int) -> bool:
-        mm = RZCONTROL_IOCTL_STRUCT(0, RZCONTROL_MOUSE, 0, click_mask, 0, 0, 0, 0)
-        return self.impl_mouse_ioctl(mm)

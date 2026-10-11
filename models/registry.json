@@ -1,0 +1,55 @@
+{
+  "FN": {
+    "label": "Fortnite",
+    "weights": [
+      "models/fn/best.fp16.onnx",
+      "models/fn/best.onnx",
+      "models/fn/best.engine",
+      "models/fn/best.pt"
+    ],
+    "capture_size": 320,
+    "target_class_ids": [0],
+    "description": "YOLO26 · fp16 ONNX fast load"
+  },
+  "AL": {
+    "label": "Apex Legends",
+    "weights": [
+      "models/al/fast.onnx",
+      "models/al/best.onnx",
+      "models/al/best.pt",
+      "models/al/best.engine",
+      "models/al/fast.fp16.onnx",
+      "models/al/best.fp16.onnx",
+      "models/al/weights/best.pt"
+    ],
+    "capture_size": 320,
+    "target_class_ids": null,
+    "description": "YOLO26s · fp16 ONNX fast load"
+  },
+  "VAL": {
+    "label": "Valorant",
+    "weights": [
+      "models/val/best.fp16.onnx",
+      "models/val/best.onnx",
+      "models/val/best.engine",
+      "models/val/weights/best.pt",
+      "models/val/best.pt"
+    ],
+    "capture_size": 320,
+    "target_class_ids": [0, 1],
+    "description": "YOLO26n · fp16 ONNX fast load"
+  },
+  "R6": {
+    "label": "Rainbow Six",
+    "weights": [
+      "models/r6/best.fp16.onnx",
+      "models/r6/best.onnx",
+      "models/r6/best.engine",
+      "models/r6/weights/best.pt",
+      "models/r6/best.pt"
+    ],
+    "capture_size": 320,
+    "target_class_ids": null,
+    "description": "YOLO26s · fp16 ONNX fast load"
+  }
+}

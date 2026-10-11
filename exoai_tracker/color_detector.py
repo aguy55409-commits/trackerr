@@ -7,8 +7,9 @@ from dataclasses import dataclass
 
 import cv2
 import dxcam
-import mss
 import numpy as np
+
+from exoai_tracker.dxgi_capture import _display_refresh_hz, _monitor_rect
 
 
 def _lower_thread_priority() -> None:
@@ -53,8 +54,11 @@ class ColorDetector:
         min_area: int = 15,
         max_area: int = 8000,
         capture_method: str = "dxcam",
+        monitor: int = 0,
+        offset_x: int = 0,
+        offset_y: int = 0,
     ) -> None:
-        self._capture_method = capture_method
+        self._capture_method = "dxcam"
         self._capture_size = capture_size
         self._min_area = min_area
         self._max_area = max_area
@@ -68,14 +72,14 @@ class ColorDetector:
         self._color_preset = color_preset
         
         # Screen info
-        with mss.mss() as sct:
-            self.monitor = dict(sct.monitors[1])
-        self.screen_left = self.monitor["left"]
-        self.screen_top = self.monitor["top"]
-        self.screen_w = self.monitor["width"]
-        self.screen_h = self.monitor["height"]
-        self.center_x = self.screen_left + self.screen_w // 2
-        self.center_y = self.screen_top + self.screen_h // 2
+        self._monitor_index = max(0, int(monitor))
+        left, top, right, bottom = _monitor_rect(self._monitor_index)
+        self.screen_left = left
+        self.screen_top = top
+        self.screen_w = right - left
+        self.screen_h = bottom - top
+        self.center_x = self.screen_left + self.screen_w // 2 + int(offset_x)
+        self.center_y = self.screen_top + self.screen_h // 2 + int(offset_y)
         self._region = self._build_region()
         
         # Buffers
@@ -115,81 +119,57 @@ class ColorDetector:
     
     def _capture_loop(self) -> None:
         _lower_thread_priority()
-        if self._capture_method == "mss":
-            self._capture_mss_loop()
-            return
         try:
             self._capture_dxgi_loop()
         except Exception as exc:
             self._capture_error = exc
-            if not self._capture_stop.is_set():
-                self._capture_method = "mss"
-                self._capture_fell_back = True
-                self._capture_error = None
-                try:
-                    self._capture_mss_loop()
-                except Exception as fallback_exc:
-                    self._capture_error = fallback_exc
     
     def _capture_dxgi_loop(self) -> None:
         camera = None
         try:
-            camera = dxcam.create(output_idx=0, output_color="RGB", max_buffer_len=1)
+            camera = dxcam.create(
+                output_idx=self._monitor_index,
+                output_color="RGB",
+                max_buffer_len=4,
+            )
         except Exception:
             raise RuntimeError("DXGI capture blocked")
         if camera is None:
             raise RuntimeError("DXGI camera creation failed")
         
         region = self._region
-        bounds = (region["left"], region["top"], 
-                  region["left"] + region["width"], region["top"] + region["height"])
-        fail_count = 0
-        last_success = time.perf_counter()
-        
+        local_left = region["left"] - self.screen_left
+        local_top = region["top"] - self.screen_top
+        bounds = (
+            local_left,
+            local_top,
+            local_left + region["width"],
+            local_top + region["height"],
+        )
+        started = False
         try:
+            camera.start(
+                region=bounds,
+                target_fps=_display_refresh_hz(),
+                video_mode=True,
+            )
+            started = True
             while not self._capture_stop.is_set():
-                try:
-                    frame = camera.grab(region=bounds, copy=False)
-                except Exception:
-                    fail_count += 1
-                    if fail_count >= 60 or (time.perf_counter() - last_success) > 2.0:
-                        raise RuntimeError("DXGI failing")
-                    time.sleep(0.005)
-                    continue
-                
+                frame = camera.get_latest_frame()
                 if frame is None:
-                    fail_count += 1
-                    if fail_count >= 60 or (time.perf_counter() - last_success) > 2.0:
-                        raise RuntimeError("DXGI no frames")
-                    time.sleep(0.001)
                     continue
-                
-                fail_count = 0
-                last_success = time.perf_counter()
                 self._publish_frame(frame)
         finally:
             if camera:
+                if started:
+                    try:
+                        camera.stop()
+                    except Exception:
+                        pass
                 try:
                     camera.release()
                 except Exception:
                     pass
-    
-    def _capture_mss_loop(self) -> None:
-        region = self._region
-        with mss.mss() as sct:
-            while not self._capture_stop.is_set():
-                try:
-                    shot = sct.grab(region)
-                    dest = self._bufs[self._write_i]
-                    h, w = shot.height, shot.width
-                    if dest.shape[0] != h or dest.shape[1] != w:
-                        dest = np.empty((h, w, 3), dtype=np.uint8)
-                        self._bufs[self._write_i] = dest
-                    bgra = np.frombuffer(shot.raw, dtype=np.uint8).reshape(h, w, 4)
-                    cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGB, dst=dest)
-                    self._publish_ready(dest)
-                except Exception:
-                    time.sleep(0.005)
     
     def _publish_ready(self, frame: np.ndarray) -> None:
         self._write_i ^= 1
@@ -225,6 +205,10 @@ class ColorDetector:
     
     def capture_fell_back(self) -> bool:
         return self._capture_fell_back
+
+    @property
+    def capture_seq(self) -> int:
+        return self._capture_seq
     
     def close(self) -> None:
         self._capture_stop.set()

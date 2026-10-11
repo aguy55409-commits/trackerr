@@ -32,9 +32,21 @@ native/
 config.json
 tracker_config.json
 training_status.json
+training_range_status.json
 *.log
+*.ini
+*.bak
+*.whl
 tracker_mouse_debug.txt
 tracker_debug.txt
+aimlog.txt
+_*.txt
+_*.ps1
+tools/wheels/
+sunone_aimbot/.venv/
+models/range_training/
+release_build/
+release_dist/
 
 # IDE / OS
 .idea/

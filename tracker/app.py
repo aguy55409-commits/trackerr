@@ -76,6 +76,7 @@ HTML = """<!doctype html>
   <div><label>Capture</label><input id="capture" type="number" min="160" max="640" step="32" value="320"/></div>
 </div>
 <button id="go">Start</button>
+<button id="nudge" style="margin-top:8px;background:#2a3144;color:#e8eaef">Test Razer Move</button>
 <div id="stats">Ready</div>
 <script>
 async function refresh(){
@@ -104,6 +105,9 @@ document.getElementById('go').onclick = async () => {
   await pywebview.api.toggle(cfg);
   refresh();
 };
+document.getElementById('nudge').onclick = async () => {
+  document.getElementById('stats').textContent = await pywebview.api.test_mouse();
+};
 window.addEventListener('pywebviewready', boot);
 </script>
 </body></html>
@@ -119,6 +123,9 @@ class Api:
 
     def stats(self) -> dict:
         return {"text": self.app.status_text(), "running": self.app.running}
+
+    def test_mouse(self) -> str:
+        return self.app.test_mouse()
 
     def toggle(self, cfg: dict) -> None:
         self.app.apply(cfg)
@@ -161,6 +168,12 @@ class App:
             f"mouse {self.aimer.mouse.label}  ·  move {self.aimer.last_dx},{self.aimer.last_dy}\n"
             f"{self._detail}"
         )
+
+    def test_mouse(self) -> str:
+        from tracker.mouse import Mouse
+
+        m = Mouse()
+        return m.test_nudge()
 
     def start(self) -> None:
         if self.running:
@@ -218,12 +231,20 @@ class App:
             if held and target is not None:
                 self._state = "TRACK"
                 self.aimer.step(target, cx, cy, dt)
+                self._detail = (
+                    f"{self.cfg.preset} · {self.aimer.mouse.label} · "
+                    f"err {target.x-cx:.0f},{target.y-cy:.0f} · hold [{format_bind(self.cfg.bind)}]"
+                )
             elif held and dets:
                 self._state = "FOV"
+                self.aimer.last_dx = self.aimer.last_dy = 0
+                self._detail = f"{len(dets)} dets but no lock · hold [{format_bind(self.cfg.bind)}]"
             elif held:
                 self._state = "SCAN"
+                self.aimer.last_dx = self.aimer.last_dy = 0
             else:
                 self._state = "IDLE"
+                self.aimer.last_dx = self.aimer.last_dy = 0
             n += 1
             if now - t0 >= 0.5:
                 self._hz = n / (now - t0)

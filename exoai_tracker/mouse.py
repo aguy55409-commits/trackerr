@@ -1,103 +1,93 @@
+"""Mouse backends — Razer driver or SendInput fallback."""
 from __future__ import annotations
 
-import ctypes
-import time
-from pathlib import Path
-from typing import Literal
 
-MouseMethod = Literal["razer", "win32"]
-user32 = ctypes.windll.user32
-
-MOUSEEVENTF_MOVE = 0x0001
-
-_DEBUG_LOG = Path.home() / "tracker_mouse_debug.txt"
-
-
-def _log(msg: str) -> None:
-    try:
-        with _DEBUG_LOG.open("a", encoding="utf-8") as f:
-            f.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
-    except Exception:
-        pass
-
-
-class MouseController:
-    """Mouse input via Razer Synapse (rzctl), Win32 fallback if Razer fails."""
+class Mouse:
+    """Unified mouse interface with selectable backend.
+    
+    Backends:
+    - razer: rzctl driver (hardware-level, stealthier, needs Synapse + admin)
+    - sendinput: Win32 SendInput (works everywhere, less stealthy)
+    - sendinput_interp: SendInput with interpolated movement (smoothest, slowest)
+    """
 
     def __init__(self, method: str = "razer") -> None:
-        self._requested = method if method in ("razer", "win32") else "razer"
-        self.method: str = self._requested
-        self._razer = None
-        self.fell_back = False
-        self._fallback_reason = ""
-        self._moves = 0
-        self._fail_streak = 0
-        self._last_dx = 0
-        self._last_dy = 0
+        self._method = method
+        self._requested_method = method  # Keep track of what was originally requested
+        self._backend = None
+        self.ok = False
 
-        if self.method == "razer":
-            self._init_razer()
+    def init(self) -> bool:
+        # Lazy imports to avoid circular dependency
+        if self._method == "sendinput":
+            from exoai_tracker.mouse_backends.sendinput import SendInputMouse
+            self._backend = SendInputMouse(interpolate=False)
+        elif self._method == "sendinput_interp":
+            from exoai_tracker.mouse_backends.sendinput import SendInputMouse
+            self._backend = SendInputMouse(interpolate=True, step_delay=0.0003)
+        else:  # razer (default)
+            from exoai_tracker.rzctl.move import RazerMover
+            self._backend = RazerMover()
+        
+        self.ok = self._backend.init()
+        
+        # Fallback to SendInput if the selected method fails
+        if not self.ok and self._method not in ("sendinput", "sendinput_interp"):
+            from exoai_tracker.mouse_backends.sendinput import SendInputMouse
+            self._backend = SendInputMouse(interpolate=False)
+            self.ok = self._backend.init()
+            if self.ok:
+                self._method = "sendinput"  # Update method to reflect fallback
+        
+        return self.ok
 
-        _log(f"init method={self.method} fell_back={self.fell_back} reason={self._fallback_reason!r}")
-
-    def _init_razer(self) -> bool:
-        try:
-            from exoai_tracker.rzctl.rzctl import RZCONTROL
-
-            razer = RZCONTROL()
-            if not razer.init():
-                raise RuntimeError("Razer Synapse driver not found / RZCONTROL missing")
-            self._razer = razer
-            self.method = "razer"
-            self.fell_back = False
-            self._fallback_reason = ""
+    def move(self, dx: int, dy: int) -> bool:
+        if dx == 0 and dy == 0:
             return True
-        except Exception as exc:
-            self._razer = None
-            self.method = "win32"
-            self.fell_back = True
-            self._fallback_reason = str(exc)
+        if self._backend is None:
             return False
+        return self._backend.move(int(dx), int(dy))
+
+    def press(self) -> bool:
+        if self._backend is None:
+            return False
+        return self._backend.press()
+
+    def release(self) -> bool:
+        if self._backend is None:
+            return False
+        return self._backend.release()
 
     @property
-    def fallback_reason(self) -> str:
-        return self._fallback_reason
-
-    def move_relative(self, dx: int, dy: int) -> None:
-        if dx == 0 and dy == 0:
-            return
-
-        self._last_dx = int(dx)
-        self._last_dy = int(dy)
-        used = None
-
-        if self.method == "razer" and self._razer is not None:
-            try:
-                ok = self._razer.mouse_move(int(dx), int(dy), True)
-                if ok:
-                    used = "razer"
-                    self._fail_streak = 0
-                    self._moves += 1
-                    if self._moves <= 5 or self._moves % 60 == 0:
-                        _log(f"razer ok dx={dx} dy={dy} n={self._moves}")
-                    return
-                self._fail_streak += 1
-                if self._fail_streak >= 8:
-                    # Razer handle went stale — reopen once, then fall through
-                    if not self._init_razer():
-                        _log(f"razer dead → win32 ({self._fallback_reason})")
-            except Exception as exc:
-                self._fail_streak += 1
-                _log(f"razer exc: {exc}")
-
-        user32.mouse_event(MOUSEEVENTF_MOVE, int(dx), int(dy), 0, 0)
-        used = "win32"
-        self._moves += 1
-        if self._moves <= 5 or self._moves % 60 == 0:
-            _log(f"{used} dx={dx} dy={dy} n={self._moves}")
+    def down(self) -> bool:
+        if self._backend is None:
+            return False
+        return getattr(self._backend, "down", False)
 
     @property
     def label(self) -> str:
-        if self.fell_back:
-            return "Win32 (Razer unavailable)"
-        return "Razer Synapse" if self.method == "razer" else "Win32"
+        if not self.ok or self._backend is None:
+            if self._method == "razer":
+                return "Razer offline — Synapse + admin"
+            return f"{self._method} offline"
+        
+        if self._method.startswith("sendinput"):
+            return self._backend.label()
+        # Razer backend
+        return f"Razer · {self._backend.method} · {self._backend.ok}/{self._backend.pkt}"
+
+    @property
+    def short(self) -> str:
+        if not self.ok:
+            return "none"
+        return self._method
+
+    @property
+    def packets(self) -> int:
+        if self._backend is None:
+            return 0
+        return getattr(self._backend, "ok", 0)
+
+    @property
+    def method(self) -> str:
+        return self._method

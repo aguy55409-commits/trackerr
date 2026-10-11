@@ -1,9 +1,18 @@
-ultralytics>=8.3.0
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+ultralytics>=8.4.0
 opencv-python>=4.8.0
 numpy>=1.24.0
+onnx>=1.17.0
+onnxconverter-common>=1.14.0
+cupy-cuda12x>=13.0.0
 mss>=9.0.0
 dxcam>=0.3.0
 tensorrt-cu12>=11.2.0
 keyboard>=0.13.5
 pywin32>=306
 Pillow>=10.0.0
+vgamepad>=0.1.0
+windows-capture>=2.0.1
+imgui-bundle>=1.92.0

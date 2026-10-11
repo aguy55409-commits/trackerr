@@ -1,0 +1,26 @@
+# AL-tuned TrackTrack for a 320px crosshair crop.
+# Mouse flicks move the crop like a camera — keep IDs alive and rebind fast.
+
+tracker_type: tracktrack
+track_high_thresh: 0.30
+track_low_thresh: 0.12
+new_track_thresh: 0.32
+track_buffer: 30
+match_thresh: 0.75
+lost_match_thr: 0.9
+
+iou_weight: 0.5
+reid_weight: 0.5
+conf_weight: 0.1
+angle_weight: 0.05
+
+penalty_p: 0.2
+penalty_q: 0.4
+reduce_step: 0.05
+
+tai_thr: 0.40
+min_track_len: 1
+
+gmc_method: none
+with_reid: False
+model: auto
